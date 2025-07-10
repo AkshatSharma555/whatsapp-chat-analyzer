@@ -1,63 +1,84 @@
 import re
 import pandas as pd
+from datetime import datetime
 
 def preprocess(data):
-    # Regex for datetime format like: 12/12/2023, 14:32 -
-    pattern = r'\d{1,2}/\d{1,2}/\d{2,4},\s\d{1,2}:\d{2}\s-\s'
+    # Try multiple timestamp patterns
+    patterns = [
+        r'\[?(\d{1,2}/\d{1,2}/\d{2,4}),\s(\d{1,2}:\d{2}(?:\s?[APMapm]{2})?)\]?\s?[-–]?\s',  # Matches most Android/iPhone formats
+    ]
 
-    messages = re.split(pattern, data)[1:]
-    dates = re.findall(pattern, data)
+    for pattern in patterns:
+        try:
+            messages = re.split(pattern, data)[1:]
+            if not messages:
+                continue  # Try next pattern if nothing matched
 
-    if len(messages) != len(dates):
-        raise ValueError("Mismatch between number of messages and timestamps. File might be corrupted or formatted differently.")
+            # Group into tuples of (date, time, message)
+            chat_data = []
+            for i in range(0, len(messages), 3):
+                date_str = messages[i].strip()
+                time_str = messages[i + 1].strip()
+                message = messages[i + 2].strip()
 
-    df = pd.DataFrame({'user_message': messages, 'message_date': dates})
+                full_str = f"{date_str}, {time_str}"
 
-    # Clean & convert message_date
-    df['message_date'] = df['message_date'].str.replace(' - ', '', regex=False)
-    df['message_date'] = pd.to_datetime(df['message_date'], format='%d/%m/%Y, %H:%M', errors='coerce')
+                # Try multiple datetime formats
+                dt_obj = None
+                for fmt in ("%d/%m/%Y, %H:%M", "%d/%m/%Y, %I:%M %p", "%d/%m/%y, %I:%M %p", "%d/%m/%y, %H:%M"):
+                    try:
+                        dt_obj = datetime.strptime(full_str, fmt)
+                        break
+                    except:
+                        continue
+                if dt_obj:
+                    chat_data.append((dt_obj, message))
+            if not chat_data:
+                continue
 
-    # Drop rows where datetime parsing failed
-    df = df.dropna(subset=['message_date'])
+            # Build dataframe
+            df = pd.DataFrame(chat_data, columns=['date', 'user_message'])
 
-    df.rename(columns={'message_date': 'date'}, inplace=True)
+            # Split users and messages
+            users = []
+            messages = []
+            for message in df['user_message']:
+                entry = re.split(r'([\w\W]+?):\s', message)
+                if entry[1:]:
+                    users.append(entry[1])
+                    messages.append(" ".join(entry[2:]))
+                else:
+                    users.append('group_notification')
+                    messages.append(entry[0])
 
-    users = []
-    messages = []
+            df['user'] = users
+            df['message'] = messages
+            df.drop(columns=['user_message'], inplace=True)
 
-    for message in df['user_message']:
-        entry = re.split(r'([\w\W]+?):\s', message)
-        if entry[1:]:
-            users.append(entry[1])
-            messages.append(" ".join(entry[2:]))
-        else:
-            users.append('group_notification')
-            messages.append(entry[0])
+            # Add time features
+            df['only_date'] = df['date'].dt.date
+            df['year'] = df['date'].dt.year
+            df['month_num'] = df['date'].dt.month
+            df['month'] = df['date'].dt.month_name()
+            df['day'] = df['date'].dt.day
+            df['day_name'] = df['date'].dt.day_name()
+            df['hour'] = df['date'].dt.hour
+            df['minute'] = df['date'].dt.minute
 
-    df['user'] = users
-    df['message'] = messages
-    df.drop(columns=['user_message'], inplace=True)
+            # Add period column
+            period = []
+            for hour in df['hour']:
+                if hour == 23:
+                    period.append(f"{hour}-00")
+                elif hour == 0:
+                    period.append("00-1")
+                else:
+                    period.append(f"{hour}-{hour+1}")
+            df['period'] = period
 
-    # Extract components safely
-    df['only_date'] = df['date'].dt.date
-    df['year'] = df['date'].dt.year
-    df['month_num'] = df['date'].dt.month
-    df['month'] = df['date'].dt.month_name()
-    df['day'] = df['date'].dt.day
-    df['day_name'] = df['date'].dt.day_name()
-    df['hour'] = df['date'].dt.hour
-    df['minute'] = df['date'].dt.minute
+            return df
 
-    # Time periods
-    period = []
-    for hour in df['hour']:
-        if hour == 23:
-            period.append(f"{hour}-00")
-        elif hour == 0:
-            period.append("00-1")
-        else:
-            period.append(f"{hour}-{hour+1}")
+        except Exception as e:
+            continue
 
-    df['period'] = period
-
-    return df
+    raise ValueError("❌ Failed to preprocess file: Unknown chat format.")

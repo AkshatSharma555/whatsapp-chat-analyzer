@@ -25,7 +25,7 @@ def fetch_stats(selected_user, df):
     num_messages = df.shape[0]
     words = sum(len(message.split()) for message in df['message'].dropna())
 
-    num_media_messages = df[df['message'] == '<Media omitted>\n'].shape[0]
+    num_media_messages = df[df['message'] == '<Media omitted>\\n'].shape[0]
 
     links = []
     for message in df['message'].dropna():
@@ -46,7 +46,7 @@ def create_wordcloud(selected_user, df):
     if selected_user != 'Overall':
         df = df[df['user'] == selected_user]
 
-    temp = df[(df['user'] != 'group_notification') & (df['message'] != '<Media omitted>\n')]
+    temp = df[(df['user'] != 'group_notification') & (df['message'] != '<Media omitted>\\n')]
     temp['message'] = temp['message'].dropna().apply(remove_stop_words)
 
     text = temp['message'].str.cat(sep=" ")
@@ -61,7 +61,7 @@ def most_common_words(selected_user, df):
     if selected_user != 'Overall':
         df = df[df['user'] == selected_user]
 
-    temp = df[(df['user'] != 'group_notification') & (df['message'] != '<Media omitted>\n')]
+    temp = df[(df['user'] != 'group_notification') & (df['message'] != '<Media omitted>\\n')]
 
     words = []
     for message in temp['message'].dropna():

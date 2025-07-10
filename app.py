@@ -402,7 +402,7 @@ if 'show_analysis' in st.session_state and st.session_state['show_analysis']:
     most_common_df = helper.most_common_words(selected_user, df)
     if not most_common_df.empty:
         fig_common_words, ax_common_words = plt.subplots(figsize=(10, 8))
-        sns.barplot(x=most_common_df[1], y=most_common_df[0], ax=ax_common_words, palette='GnBu_r') # Green-Blue reverse palette
+        sns.barplot(x=most_common_df['count'], y=most_common_df['word'], ax=ax_common_words, palette='GnBu_r')
         ax_common_words.set_xlabel("Frequency", fontsize=12)
         ax_common_words.set_ylabel("Word", fontsize=12)
         ax_common_words.set_title("Most Common Words", fontsize=14, weight='bold', color='#00695C')
@@ -415,33 +415,57 @@ if 'show_analysis' in st.session_state and st.session_state['show_analysis']:
     st.markdown("---")
 
     # --- Emoji Analysis ---
+if 'selected_user' in st.session_state and 'df' in st.session_state:
+    selected_user = st.session_state['selected_user']
+    df = st.session_state['df']
+
     st.subheader("Emoji Usage Analysis 😂❤️👍")
     st.markdown("Which emojis are used most frequently?")
+
     emoji_df = helper.emoji_helper(selected_user, df)
+
     if not emoji_df.empty:
         col_emoji1, col_emoji2 = st.columns(2)
 
         with col_emoji1:
             st.markdown("### Top Emojis Table:")
-            st.dataframe(emoji_df.style.set_properties(**{'font-size': '1.05rem', 'text-align': 'left'}), use_container_width=True)
+            st.dataframe(
+                emoji_df.style.set_properties(**{'font-size': '1.05rem', 'text-align': 'left'}),
+                use_container_width=True
+            )
+
         with col_emoji2:
             st.markdown("### Emoji Distribution:")
-            fig_emoji_pie, ax_emoji_pie = plt.subplots(figsize=(8, 8))
-            # Ensure there are enough emojis for the pie chart
-            if len(emoji_df) >= 5:
-                ax_emoji_pie.pie(emoji_df[1].head(), labels=emoji_df[0].head(), autopct="%0.2f%%", startangle=90, colors=sns.color_palette("Set2"))
+
+            # --- Set cross-platform emoji font ---
+            import platform
+
+            if platform.system() == "Windows":
+                plt.rcParams['font.family'] = 'Segoe UI Emoji'
+            elif platform.system() == "Darwin":
+                plt.rcParams['font.family'] = 'Apple Color Emoji'
             else:
-                ax_emoji_pie.pie(emoji_df[1], labels=emoji_df[0], autopct="%0.2f%%", startangle=90, colors=sns.color_palette("Set2"))
-            ax_emoji_pie.set_title("Top 5 Emoji Distribution", fontsize=14, weight='bold', color='#00695C')
+                plt.rcParams['font.family'] = 'Noto Color Emoji'
+
+            # --- Create pie chart ---
+            fig_emoji_pie, ax_emoji_pie = plt.subplots(figsize=(8, 8))
+
+            top_n = 5 if len(emoji_df) >= 5 else len(emoji_df)
+            counts = emoji_df['count'].head(top_n)
+            labels = emoji_df['emoji'].head(top_n)
+
+            ax_emoji_pie.pie(
+                counts,
+                labels=labels,
+                autopct="%0.2f%%",
+                startangle=90,
+                colors=sns.color_palette("Set2")
+            )
+            ax_emoji_pie.set_title("Top Emoji Distribution", fontsize=14, weight='bold', color='#00695C')
             st.pyplot(fig_emoji_pie)
     else:
         st.info("No emojis found in this chat.")
     st.markdown("---")
-
-else:
-    st.empty() # Clear previous analysis if not showing
-
-
 
 # --- Footer ---
 st.markdown("""
