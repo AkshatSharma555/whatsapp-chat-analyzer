@@ -63,5 +63,5 @@ Works seamlessly for:
 - Python 3.8+
 - pip packages:
   ```bash
-  streamlit run app.py
   pip install streamlit matplotlib seaborn wordcloud pandas urlextract emoji
+  streamlit run app.py
