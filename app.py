@@ -3,8 +3,11 @@ import preprocessor, helper
 import matplotlib.pyplot as plt
 import seaborn as sns
 from streamlit_option_menu import option_menu
-import pandas as pd
-import matplotlib.font_manager as fm
+from helper import extract_topics
+from ml.message_type import add_message_type_column
+
+
+
 
 # --- Page Configuration (Must be the first Streamlit command) ---
 st.set_page_config(
@@ -358,6 +361,148 @@ if 'show_analysis' in st.session_state and st.session_state['show_analysis']:
     ax_heatmap.set_title("Message Activity Heatmap", fontsize=16, weight='bold', color='#00695C')
     st.pyplot(fig_heatmap)
     st.markdown("---")
+
+    # --- SENTIMENT ANALYSIS SECTION ---
+    st.subheader("Sentiment Analysis 🧠")
+    st.markdown("Every message has a mood. Let’s see how this chat feels...")
+
+    # Ensure 'sentiment' column exists
+    if 'sentiment' not in df.columns:
+        from ml import sentiment
+
+        df = sentiment.add_sentiment_column(df)
+        st.session_state['df'] = df  # Save back to session state for further use
+
+    sentiment_counts = df['sentiment'].value_counts()
+    sentiment_labels = ['Positive', 'Neutral', 'Negative']
+    sentiment_colors = ['#43a047', '#fdd835', '#e53935']
+    sentiment_values = [sentiment_counts.get(s, 0) for s in sentiment_labels]
+
+    fig_sentiment, ax_sentiment = plt.subplots()
+    ax_sentiment.pie(sentiment_values, labels=sentiment_labels, autopct='%1.1f%%',
+                     colors=sentiment_colors, startangle=90)
+    ax_sentiment.axis('equal')
+    ax_sentiment.set_title("Sentiment Distribution", fontsize=14, weight='bold', color='#00695C')
+    st.pyplot(fig_sentiment)
+    st.markdown("---")
+
+    # --- TOPIC MODELING SECTION ---
+    st.subheader("Topic Modeling 🧠📚")
+    st.markdown("Explore the major themes being discussed in this chat!")
+
+    topics = extract_topics(df)
+
+    if not topics:
+        st.info("Not enough data to extract topics. Try selecting a different user or a larger chat.")
+    else:
+        for idx, (topic_title, words) in enumerate(topics):
+            styled_words = " ".join([
+                                        f"<span style='background-color:#e0f7fa; color:#00695C; padding:4px 8px; margin:3px; border-radius:8px; display:inline-block;'>{word}</span>"
+                                        for word in words])
+
+            st.markdown(f"""
+                <div style="background-color:#f1f8e9; padding:20px; border-radius:12px; margin-bottom:10px; box-shadow:0 2px 6px rgba(0,0,0,0.1);">
+                    <h4 style='color:#2e7d32;'>🧠 Topic {idx + 1}</h4>
+                    <p>{styled_words}</p>
+                </div>
+            """, unsafe_allow_html=True)
+
+    # --- Message Type Classification with Side Legend (Fixed Overlapping Percentages) ---
+    if 'message_type' not in df.columns:
+        df = add_message_type_column(df)
+        st.session_state['df'] = df
+
+    st.subheader("Message Type Classification 🧾")
+    st.markdown("Explore the nature of messages – questions, statements, commands, or forwards.")
+
+    msg_type_counts = df['message_type'].value_counts()
+    labels = msg_type_counts.index.tolist()
+    sizes = msg_type_counts.values.tolist()
+    colors = sns.color_palette("Set2", len(labels))
+
+    # Pie chart without percentages on the chart
+    fig_type, ax_type = plt.subplots(figsize=(8, 6))
+    wedges, _ = ax_type.pie(
+        sizes,
+        startangle=90,
+        colors=colors,
+        wedgeprops={'linewidth': 1, 'edgecolor': 'white'},
+        labels=None,  # No inline labels
+        autopct=None
+    )
+    ax_type.axis('equal')
+    ax_type.set_title("Message Type Breakdown", fontsize=14, weight='bold', color='#00695C')
+
+    # Show percentages in the legend instead
+    total = sum(sizes)
+    if total > 0:
+        legend_labels = [f"{label}: {round((count / total) * 100, 1)}%" for label, count in zip(labels, sizes)]
+    else:
+        legend_labels = [f"{label}: 0%" for label in labels]
+
+    ax_type.legend(
+        handles=wedges,
+        labels=legend_labels,
+        loc="center left",
+        bbox_to_anchor=(1, 0.5),
+        fontsize=12,
+        title="Message Types",
+        title_fontsize=13
+    )
+
+    st.pyplot(fig_type)
+
+    # --- USER CLUSTERING SECTION ---
+    st.subheader("User Clustering 🔍")
+    st.markdown(
+        "Discover groups of users with similar behavior based on message length, emoji use, sentiment, and more.")
+
+    from ml.user_cluster import extract_user_features, cluster_users
+
+    if selected_user == "Overall":
+        user_features = extract_user_features(df)
+        clustered = cluster_users(user_features, n_clusters=3)
+
+        col_cluster1, col_cluster2 = st.columns([2, 1])
+
+        with col_cluster1:
+            import seaborn as sns
+
+            fig_cluster, ax_cluster = plt.subplots(figsize=(10, 6))
+            sns.scatterplot(
+                x='pca1', y='pca2',
+                hue='cluster',
+                data=clustered,
+                palette='Set2',
+                s=100,
+                ax=ax_cluster
+            )
+            for i, row in clustered.iterrows():
+                ax_cluster.text(row['pca1'] + 0.02, row['pca2'] + 0.02, i, fontsize=9)
+            ax_cluster.set_title("User Clusters (PCA View)", fontsize=14, weight='bold', color='#00695C')
+            st.pyplot(fig_cluster)
+
+        with col_cluster2:
+            st.markdown("### Cluster Summary Table:")
+            cluster_summary = clustered[['total_messages', 'avg_msg_length', 'emoji_usage', 'cluster']].copy()
+            cluster_summary['cluster'] = cluster_summary['cluster'].astype(str)
+            st.dataframe(cluster_summary.style.set_properties(**{'font-size': '1rem'}), use_container_width=True)
+    else:
+        st.info("Switch to **Overall** to view user-level clustering.")
+
+    # --- USER CLUSTERING ---
+    st.subheader("User Clustering 🔍")
+    st.markdown("Discover groups of users with similar message content.")
+
+    from ml.user_clustering import cluster_users
+
+    users, labels, cluster_map = cluster_users(df)
+
+    if cluster_map:
+        for cluster, members in cluster_map.items():
+            st.markdown(f"**{cluster}:** " + ", ".join(members))
+    else:
+        st.warning("Not enough data to form clusters. Try with a bigger group or more users.")
 
     # --- Busiest Users (Group Level) ---
     if selected_user == 'Overall':

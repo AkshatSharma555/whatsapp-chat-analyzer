@@ -4,6 +4,8 @@ import pandas as pd
 from collections import Counter
 import emoji
 import os
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.decomposition import LatentDirichletAllocation
 
 extract = URLExtract()
 
@@ -125,3 +127,27 @@ def activity_heatmap(selected_user, df):
 
     heatmap = df.pivot_table(index='day_name', columns='period', values='message', aggfunc='count').fillna(0)
     return heatmap
+
+def extract_topics(df, num_topics=5, num_words=10):
+    temp = df[
+        (df['user'] != 'group_notification') &
+        (~df['message'].str.lower().str.strip().eq('<media omitted>'))
+    ]
+    temp['cleaned'] = temp['message'].dropna().apply(remove_stop_words)
+    temp = temp[temp['cleaned'].str.strip().astype(bool)]
+
+    if temp.empty:
+        return []
+
+    vectorizer = CountVectorizer(max_df=0.9, min_df=2, stop_words=list(stop_words))
+    dtm = vectorizer.fit_transform(temp['cleaned'])
+
+    lda_model = LatentDirichletAllocation(n_components=num_topics, random_state=42)
+    lda_model.fit(dtm)
+
+    topics = []
+    for idx, topic in enumerate(lda_model.components_):
+        topic_words = [vectorizer.get_feature_names_out()[i] for i in topic.argsort()[-num_words:][::-1]]
+        topics.append((f"Topic {idx+1}", topic_words))
+
+    return topics
