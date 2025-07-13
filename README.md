@@ -1,67 +1,66 @@
-# whatsapp-chat-analyzer
+# 💬 WhatsApp Chat Analyzer | AI-Powered Dashboard
 
-A powerful and privacy-focused Streamlit app that uncovers meaningful insights from your WhatsApp conversations — be it personal chats or group discussions. Built with Python, Pandas, Matplotlib, Seaborn, and love 💚
+A privacy-focused and AI-powered dashboard that extracts **deep insights** from your exported WhatsApp chats using **Data Science**, **Machine Learning**, and **NLP**.  
+🎯 Built with Python, Streamlit, Seaborn, Matplotlib, and love ❤️
 
-🔗 [Live Demo on Streamlit](https://whatsapp-chat-analyzer-nvh5sfm45pwjntt3vpgvkk.streamlit.app)  
+🔗 **Live App**: [Click to Try Now](https://whatsapp-chat-analyzer-nvh5sfm45pwjntt3vpgvkk.streamlit.app)  
+
 ---
 
 ## 📌 What This App Does
 
-This app allows you to upload your exported WhatsApp `.txt` chat file and provides:
+Upload your `.txt` WhatsApp export and instantly visualize:
 
-- 📈 Key statistics (messages, words, media, links)
-- 📅 Activity trends (monthly, daily)
-- 📊 Active days and times
-- ☁️ Word clouds and most common words
-- 😂 Emoji usage analytics
-- 👥 Individual + Group analysis
-- 🎨 Interactive charts and beautiful UI
-
-Works seamlessly for:
-- ✅ One-on-one personal chats
-- ✅ Group chats (with per-user and overall stats)
+- 📊 Total messages, word counts, media shared, and links
+- 📅 Activity over months, days, and hours (heatmaps)
+- 🧠 AI insights: Sentiment, Topics, and Message Type Classification
+- 🔍 User behavior clustering
+- ☁️ Word Clouds + Emoji Analysis
 
 ---
 
-## 🎯 Key Features
+## 🚀 Key Features
 
-| Feature                        | Description |
-|-------------------------------|-------------|
-| 📈 **Key Metrics Dashboard**  | See total messages, word count, media and link stats |
-| 📅 **Monthly Activity Trend** | Track chat activity month-wise with line chart |
-| 📆 **Daily Activity Trend**   | Understand how active the chat is on a daily basis |
-| 📊 **Activity Hotspots**      | Bar charts of busiest weekdays and months |
-| ⚡ **Weekly Heatmap**         | See which day and hour people are most active |
-| 👥 **Top Contributors**       | In group chats, see who chats the most |
-| ☁️ **Word Cloud**             | Visual cloud of most used words (after cleaning) |
-| 📝 **Top 20 Words**           | Exact word frequency breakdown |
-| 😂 **Emoji Analysis**         | Emoji counts with table + pie chart |
+| 🔍 Feature                        | 📄 Description |
+|----------------------------------|----------------|
+| 📈 **Metrics Dashboard**         | Get instant stats like message count, words, links, media |
+| 📆 **Monthly & Daily Timelines** | Line charts to track activity over time |
+| 📊 **Activity Hotspots**         | Bar charts for busy days & months |
+| ⚡ **Weekly Heatmap**            | Detect time-of-day trends using heatmaps |
+| 🧠 **Sentiment Analysis**        | Analyze the mood: Positive, Neutral, Negative |
+| 📚 **Topic Modeling (NLP)**      | Extract top themes from conversations |
+| 🧾 **Message Type Classifier**   | AI-powered tags: Question, Statement, Command, Forward |
+| 🔍 **User Clustering (ML)**      | Group users by behavioral similarity |
+| ☁️ **Word Cloud**                | Visualize frequently used words |
+| 😂 **Emoji Analytics**           | Emoji usage table + pie chart |
+| 👥 **Top Contributors**          | See who talks the most (group chat) |
 
+---
 
 ## 🔐 Privacy First – Always
 
-✔️ No data is uploaded, stored, or shared.  
-✔️ All processing happens in-memory (locally in browser + Streamlit session).  
-✔️ You can verify this by reading the source code.  
-🛡️ Your data is **never** stored in any database or server.
+✔️ No data is stored  
+✔️ Runs completely on Streamlit server memory  
+✔️ Source code is open for review  
+🛡️ Your `.txt` file is never uploaded or saved
 
 ---
 
 ## 📂 How to Export WhatsApp Chat
 
-1. Open a WhatsApp chat  
-2. Tap the 3-dot menu → **More** → **Export Chat**  
+1. Open WhatsApp → any chat  
+2. Tap menu → **More** → **Export Chat**  
 3. Choose **Without Media**  
-4. Send the `.txt` file to your device (via Gmail, Drive, etc.)
+4. Save the `.txt` file to your device
 
 ---
 
-## 🚀 Run Locally (for Developers)
+## 🧪 Run Locally (Developer Setup)
 
-### ⚙️ Requirements
+### 🔧 Requirements
 
 - Python 3.8+
-- pip packages:
+- Libraries:
   ```bash
-  pip install streamlit matplotlib seaborn wordcloud pandas urlextract emoji
+  pip install -r requirements.txt
   streamlit run app.py
